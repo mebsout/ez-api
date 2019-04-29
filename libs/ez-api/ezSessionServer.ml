@@ -4,7 +4,7 @@ open EzSession.TYPES
 
 let (>>=) = Lwt.(>>=)
 
-let verbose = EzAPIServer.verbose
+let verbose = EzAPIServerUtils.verbose
 
 (* WARNINGS:
    * A user might try to fill the table of cookies with useless entries
@@ -62,7 +62,7 @@ module SessionStoreInMemory : SessionStore = struct
             session_login = login;
             session_cookie = cookie;
             session_variables = StringMap.empty;
-            session_last = EzAPIServer.req_time ();
+            session_last = EzAPIServerUtils.req_time ();
           } in
         Hashtbl.add session_by_cookie cookie s;
         s
@@ -73,7 +73,7 @@ module SessionStoreInMemory : SessionStore = struct
     | exception Not_found ->
        Lwt.return None
     | s ->
-       s.session_last <- EzAPIServer.req_time ();
+       s.session_last <- EzAPIServerUtils.req_time ();
        Lwt.return (Some s)
 
   let remove_session ~login ~cookie =
@@ -164,16 +164,16 @@ module Make(S: sig
            ) : sig
 
   val register_handlers :
-    EzAPI.request EzAPIServer.directory ->
-    EzAPI.request EzAPIServer.directory
+    EzAPI.request EzAPIServerUtils.directory ->
+    EzAPI.request EzAPIServerUtils.directory
 
   val get_request_session : EzAPI.request -> session option Lwt.t
 
   val register :
            ('arg, 'b, 'input, 'd) EzAPI.service ->
-           ('arg -> 'input -> 'd EzAPIServer.answer Lwt.t) ->
-           EzAPI.request EzAPIServer.directory ->
-           EzAPI.request EzAPIServer.directory
+           ('arg -> 'input -> 'd EzAPIServerUtils.answer Lwt.t) ->
+           EzAPI.request EzAPIServerUtils.directory ->
+           EzAPI.request EzAPIServerUtils.directory
 
 end = struct
 
@@ -229,7 +229,7 @@ end = struct
         new_challenge ()
       else
         let challenge = random_challenge () in
-        let t0 = EzAPIServer.req_time () in
+        let t0 = EzAPIServerUtils.req_time () in
         if Queue.length challenge_queue > max_challenges then begin
             let challenge_id = Queue.take challenge_queue in
             Hashtbl.remove challenges challenge_id
@@ -253,7 +253,7 @@ end = struct
 
     let request_auth req =
       add_auth_header req;
-      EzAPIServer.return (new_challenge ())
+      EzAPIServerUtils.return (new_challenge ())
 
     let return_auth req ?cookie ~login user_info =
       let cookie = match cookie with
@@ -263,7 +263,7 @@ end = struct
         | Some cookie -> cookie
       in
       add_auth_header ~cookie req;
-      EzAPIServer.return
+      EzAPIServerUtils.return
         (AuthOK (login, cookie, user_info))
 
     let connect req () =
@@ -307,7 +307,7 @@ end = struct
 
     let logout req () =
        get_request_session req >>= function
-      | None -> EzAPIServer.return_error 403
+      | None -> EzAPIServerUtils.return_error 403
       | Some { session_login=login; session_cookie = cookie; _ } ->
          remove_session ~login ~cookie >>= fun () ->
          request_auth req
@@ -320,13 +320,13 @@ end = struct
       | `CSRF header ->
           ["access-control-allow-headers", header]
     in
-    EzAPIServer.register service handler
+    EzAPIServerUtils.register service handler
       ~options_headers
 
   let register_handlers dir =
     dir
     |> register Service.connect Handler.connect
-    |> EzAPIServer.register Service.login Handler.login
+    |> EzAPIServerUtils.register Service.login Handler.login
     |> register Service.logout Handler.logout
 
 end

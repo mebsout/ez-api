@@ -18,8 +18,8 @@ module Make(S: sig
   (* User `register_handlers` to declare the handlers for the authentification
      services *)
   val register_handlers :
-    EzAPI.request EzAPIServer.directory ->
-    EzAPI.request EzAPIServer.directory
+    EzAPI.request EzAPIServerUtils.directory ->
+    EzAPI.request EzAPIServerUtils.directory
 
  (* handlers that need authentification should use `get_request_session`
    to collect the user identity and session. *)
@@ -28,9 +28,9 @@ module Make(S: sig
   (* Use this one to be sure that OPTIONS requests are correctly replied to *)
   val register :
     ('arg, 'b, 'input, 'd) EzAPI.service ->
-    ('arg -> 'input -> 'd EzAPIServer.answer Lwt.t) ->
-    EzAPI.request EzAPIServer.directory ->
-    EzAPI.request EzAPIServer.directory
+    ('arg -> 'input -> 'd EzAPIServerUtils.answer Lwt.t) ->
+    EzAPI.request EzAPIServerUtils.directory ->
+    EzAPI.request EzAPIServerUtils.directory
 
 end
 
